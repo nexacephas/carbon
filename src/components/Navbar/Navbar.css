@@ -1,0 +1,181 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  height: 60px;
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.navbar-logo {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: color 0.3s;
+}
+.sidebar-toggle:hover { color: var(--primary-color); }
+
+.right-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+}
+
+/* Notification */
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: var(--danger-color);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 50%;
+}
+
+.notification-dropdown {
+  position: absolute;
+  right: 0;
+  top: 35px;
+  width: 260px;
+  max-height: 300px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  overflow: hidden;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 15px;
+  font-weight: bold;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--card-bg);
+}
+
+.mark-read-btn {
+  font-size: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+}
+
+.notification-list {
+  list-style: none;
+  overflow-y: auto;
+  max-height: 220px;
+}
+
+.notification-item {
+  padding: 10px 15px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.875rem;
+  cursor: default;
+}
+.notification-item.unread { font-weight: 600; }
+.notification-item.read { color: var(--muted-text); }
+
+/* Theme Toggle */
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: color 0.3s;
+}
+.theme-toggle:hover { color: var(--primary-color); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar { padding: 0 10px; }
+  .notification-dropdown { width: 200px; }
+}
+/* Make sure navbar adapts when sidebar collapses */
+.app-container {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Sidebar width (expanded & collapsed) */
+.sidebar {
+  width: 240px;
+  transition: width 0.3s ease;
+}
+.sidebar.collapsed {
+  width: 70px;
+}
+
+/* Main content shifts based on sidebar state */
+.main-content {
+  flex: 1;
+  transition: margin-left 0.3s ease;
+  margin-left: 240px; /* default when sidebar expanded */
+}
+.sidebar.collapsed ~ .main-content {
+  margin-left: 70px;
+}
+
+/* Mobile: sidebar overlays instead of pushing content */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: -240px;
+    top: 0;
+    height: 100vh;
+    z-index: 200;
+  }
+  .sidebar.open {
+    left: 0;
+  }
+
+  .main-content {
+    margin-left: 0; /* full width */
+  }
+
+  .navbar {
+    width: 100%;
+  }
+}
