@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaBars, FaBell, FaSun, FaMoon } from "react-icons/fa";
 import "./Navbar.css";
 
-function Navbar({ toggleSidebar }) {
-  const [theme, setTheme] = useState("light");
+function Navbar({ onToggleSidebar, theme, setTheme }) {
   const [notifications, setNotifications] = useState([
     { id: 1, text: "New user signed up", read: false },
     { id: 2, text: "Server downtime reported", read: false },
@@ -25,14 +24,15 @@ function Navbar({ toggleSidebar }) {
   return (
     <nav className="navbar">
       <div className="left-section">
-        <button className="sidebar-toggle" onClick={toggleSidebar}>
+        {/* Sidebar Toggle (Hamburger) */}
+        <button className="menu-btn" onClick={onToggleSidebar}>
           <FaBars />
         </button>
-        <h1 className="navbar-logo">Dashboard</h1>
+        <h1 className="navbar-logo">IoT Dashboard</h1>
       </div>
 
       <div className="right-section">
-        {/* Notification */}
+        {/* Notifications */}
         <div className="notification-wrapper">
           <button className="notification-btn" onClick={toggleDropdown}>
             <FaBell />

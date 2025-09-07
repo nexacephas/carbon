@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Navbar from "./components/Navbar/Navbar";
-import KPISection from "./components/KPISection/KPISection";
 import Dashboard from "./components/Dashboard/Dashboard";
+import Prediction from "./components/Prediction/Prediction";
+import History from "./components/History/History";
+import "./index.css"; // global + layout styles
 
 function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -13,18 +15,21 @@ function App() {
   return (
     <Router>
       <div className="app-container">
-        <Sidebar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
+        {/* Sidebar (fixed) */}
+        <Sidebar isCollapsed={isCollapsed} />
 
-        <div className={`main-content ${isCollapsed ? "expanded" : ""}`}>
+        {/* Main content (shifts when sidebar collapses) */}
+        <div className={`main-content ${isCollapsed ? "collapsed" : ""}`}>
           <Navbar toggleSidebar={toggleSidebar} />
 
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/energy" element={<KPISection />} />
-            <Route path="/carbon" element={<Dashboard />} />
-            <Route path="/reports" element={<Dashboard />} />
-            <Route path="/settings" element={<Dashboard />} />
-          </Routes>
+          <div className="page-wrapper">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/ai-prediction" element={<Prediction />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/settings" element={<h2>Settings</h2>} />
+            </Routes>
+          </div>
         </div>
       </div>
     </Router>
