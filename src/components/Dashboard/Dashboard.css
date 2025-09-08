@@ -1,67 +1,76 @@
-/* Dashboard container */
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  height: 100%;
-  width: 100%;
+  gap: 1.5rem;
+  padding: 20px;
+  background: var(--bg-color);
+  color: var(--text-color);
 }
 
-/* Header */
+/* ===== Header ===== */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--card-bg);
-  padding: 16px 20px;
-  border-radius: 10px;
-  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+  gap: 1rem;
 }
-
-.dashboard-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
+/* .content-area {
+  flex: 1;
+  padding: 20px;
+  background: var(--bg-color);
+  transition: background 0.3s ease, color 0.3s ease;
+} */
 .kpi-buttons {
   display: flex;
-  gap: 10px;
+  gap: 0.75rem;
 }
 
-.kpi-buttons button {
-  padding: 8px 14px;
+.btn {
+  padding: 8px 16px;
   border: none;
   border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn.primary {
   background: var(--primary-color);
   color: #fff;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.3s ease;
 }
 
-.kpi-buttons button:hover {
-  background: var(--primary-hover);
+.btn.primary:hover {
+  opacity: 0.9;
 }
 
-/* KPI Stats Grid */
+.btn.danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn.danger:hover {
+  background: #dc2626;
+}
+
+/* ===== KPI Grid ===== */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 19px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
 }
 
 .stat-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: var(--card-shadow);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 16px;
-  border-radius: 12px;
-  color: #fff;
-  box-shadow: var(--shadow);
-  transition: transform 0.2s ease;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 0.2s ease, background 0.3s ease, color 0.3s ease;
 }
 
 .stat-card:hover {
@@ -69,51 +78,107 @@
 }
 
 .kpi-icon {
-  font-size: 1.6rem;
-  margin-bottom: 8px;
+  font-size: 1.5rem;
+  color: var(--primary-color);
 }
 
 .kpi-value {
   font-size: 1.4rem;
-  font-weight: 700;
-  margin: 0;
+  font-weight: bold;
+  color: var(--text-color);
 }
 
 .kpi-label {
   font-size: 0.9rem;
-  opacity: 0.9;
-  margin: 0;
-}
-
-/* Chart Card */
-.chart-card {
-  background: var(--card-bg);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-}
-
-.chart-card h3 {
-  margin-bottom: 12px;
-  font-size: 1.2rem;
-  font-weight: 600;
+  opacity: 0.8;
   color: var(--text-color);
 }
 
-/* Responsive */
+/* ===== Chart Section ===== */
+.chart-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: var(--card-shadow);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.chart-card h3 {
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+
+/* ===== Insight Section ===== */
+.insight {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.insight.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.insight.warning {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+/* ===== Responsive ===== */
 @media (max-width: 768px) {
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
   }
 
   .kpi-buttons {
     width: 100%;
+    justify-content: flex-start;
     flex-wrap: wrap;
   }
+}
 
-  .kpi-buttons button {
-    flex: 1;
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
+}
+
+/* ===== Relay Controls ===== */
+.relay-controls {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.relay-btn {
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.relay-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.relay-btn:active {
+  transform: scale(0.97);
+}
+
+.reset-btn {
+  background: #ef4444;
+}
+
+.reset-btn:hover {
+  background: #dc2626;
 }

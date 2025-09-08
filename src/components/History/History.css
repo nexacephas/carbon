@@ -1,132 +1,135 @@
-/* Dashboard.css or History.css */
+/* ===== Global & Theme Variables Already Defined in Dashboard CSS ===== */
+
+/* ===== Dashboard Page ===== */
 .dashboard {
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f4f6f8;
+  background: var(--bg-color);
+  color: var(--text-color);
   min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-h2 {
-  margin-bottom: 20px;
-  color: #1f2937;
-}
-
-/* Timeframe Buttons */
-.timeframe-buttons {
+/* ===== Header ===== */
+.dashboard h2 {
+  font-size: 1.8rem;
   margin-bottom: 15px;
+  font-weight: 600;
+}
+
+/* ===== Timeframe & CSV Buttons ===== */
+.timeframe-buttons {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .timeframe-buttons button {
-  background-color: #e5e7eb;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
   font-weight: 500;
-  transition: all 0.2s ease-in-out;
+  border: none;
+  cursor: pointer;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  transition: all 0.3s ease;
 }
 
-.timeframe-buttons button.active,
+.timeframe-buttons button.active {
+  background: var(--text-color);
+  color: var(--card-bg);
+}
+
 .timeframe-buttons button:hover {
-  background-color: #3b82f6;
-  color: white;
+  opacity: 0.85;
 }
 
-/* Table Container */
+/* ===== Table Container ===== */
 .table-container {
   overflow-x: auto;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  padding: 15px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1000px;
+  font-size: 0.9rem;
+  min-width: 900px;
 }
 
 thead {
-  background-color: #3b82f6;
-  color: white;
+  background: var(--primary-color);
+  color: var(--btn-text);
 }
 
 thead th {
-  padding: 12px 8px;
+  padding: 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 tbody td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #e5e7eb;
-  font-size: 13px;
-  color: #374151;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.3s ease;
 }
 
-tbody tr:hover {
-  background-color: #f1f5f9;
+/* ===== Trend Highlighting ===== */
+.trend-up {
+  background-color: rgba(16, 185, 129, 0.15);
 }
 
-/* Pagination */
+.trend-down {
+  background-color: rgba(244, 63, 94, 0.15);
+}
+
+.trend-stable {
+  background-color: rgba(156, 163, 175, 0.08);
+}
+
+/* ===== Pagination ===== */
 .pagination {
-  margin-top: 15px;
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-top: 15px;
   gap: 10px;
 }
 
 .pagination button {
-  background-color: #3b82f6;
-  border: none;
-  color: white;
-  padding: 6px 14px;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
+  border: none;
+  background: var(--primary-color);
+  color: var(--btn-text);
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .pagination button:disabled {
-  background-color: #9ca3af;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.pagination span {
-  font-weight: 500;
-  color: #1f2937;
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  table {
+    font-size: 0.85rem;
+    min-width: 800px;
+  }
 }
 
-/* CSV Download Button */
-.timeframe-buttons button:last-child {
-  background-color: #10b981;
-  color: white;
-}
-
-.timeframe-buttons button:last-child:hover {
-  background-color: #059669;
-}
-
-/* Responsive */
 @media (max-width: 768px) {
-  .table-container {
-    min-width: 600px;
-  }
-
-  thead th, tbody td {
-    padding: 8px 6px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 480px) {
-  .table-container {
-    min-width: 500px;
+  table {
+    font-size: 0.8rem;
+    min-width: 700px;
   }
 
   .timeframe-buttons {
@@ -134,16 +137,28 @@ tbody tr:hover {
     gap: 8px;
   }
 
-  .timeframe-buttons button {
-    width: 100%;
+  .pagination {
+    flex-direction: column;
+    gap: 8px;
   }
 }
-/* Trend icons */
-tbody td {
-  position: relative;
+
+@media (max-width: 480px) {
+  .dashboard h2 {
+    font-size: 1.5rem;
+  }
+
+  table {
+    font-size: 0.75rem;
+    min-width: 500px;
+  }
 }
 
-tbody td span.trend {
-  margin-left: 4px;
-  font-size: 0.9rem;
+/* ===== Smooth Row Transition for Real-Time Updates ===== */
+tbody tr {
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+tbody tr:hover {
+  transform: scale(1.01);
 }

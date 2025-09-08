@@ -1,3 +1,66 @@
+/* ===== Default Theme (Light) ===== */
+:root {
+  --bg-color: #f9fafb;
+  --text-color: #1f2937;
+  --card-bg: #ffffff;
+  --border-color: #e5e7eb;
+  --primary-color: #2563eb;
+
+  --btn-bg: var(--primary-color);
+  --btn-text: #ffffff;
+
+  --transition-speed: 0.3s;
+  --sidebar-width: 240px;
+  --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== Dark Theme ===== */
+[data-theme="dark"] {
+  --bg-color: #111827;
+  --text-color: #f9fafb;
+  --card-bg: #1f2937;
+  --border-color: #374151;
+  --primary-color: #3b82f6;
+
+  --btn-bg: var(--primary-color);
+  --btn-text: #ffffff;
+
+  --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* ===== Global Styles ===== */
+body {
+  background: var(--bg-color);
+  color: var(--text-color);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.page-wrapper {
+  background: var(--bg-color);
+  min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.card {
+  background: var(--card-bg);
+  color: var(--text-color);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+button {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
 /* ===== Layout Wrapper ===== */
 .layout {
   display: flex;
@@ -27,15 +90,22 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  transition: margin-left var(--transition-speed, 0.3s) ease;
+  height: 100vh;
+  background: var(--bg-color);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Content Area (under navbar) */
+/* ===== Content Area ===== */
 .content-area {
   flex: 1;
   padding: 20px;
   background: var(--bg-color);
-  overflow-y: auto;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.main-content,
+.content-area {
+  background: var(--bg-color) !important;
+  color: var(--text-color) !important;
 }
 
 /* ===== Responsive ===== */
@@ -56,4 +126,12 @@
   .main-content {
     margin-left: 0; /* full width */
   }
+}
+.dashboard {
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-color);   /* ✅ uses theme */
+  color: var(--text-color);      /* ✅ text color follows theme */
+  min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease; /* smooth */
 }

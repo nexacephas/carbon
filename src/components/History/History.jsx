@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "./History.css";
 
 function History() {
   const [data, setData] = useState([]);
   const [timeframe, setTimeframe] = useState("day"); // day, week, month, year
   const [currentPage, setCurrentPage] = useState(1);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const rowsPerPage = 10;
+  const dataRef = useRef([]); // keep latest data in ref for real-time updates
 
   const fetchData = async (tf) => {
     try {
@@ -47,23 +49,26 @@ function History() {
           energy,
           carbon,
           relay: Number(feed.field5) === 1 ? "ON" : "OFF",
-          trends: {
-            energy: energyTrend,
-            carbon: carbonTrend,
-            pf: pfTrend
-          }
+          trends: { energy: energyTrend, carbon: carbonTrend, pf: pfTrend },
         };
       });
 
+      dataRef.current = processedData; // store in ref for real-time access
       setData(processedData);
       setCurrentPage(1);
+      setLastUpdated(new Date().toLocaleTimeString());
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
 
   useEffect(() => {
-    fetchData(timeframe);
+    fetchData(timeframe); // initial fetch
+
+    // Real-time polling every 1 second
+    const interval = setInterval(() => fetchData(timeframe), 1000);
+
+    return () => clearInterval(interval); // cleanup
   }, [timeframe]);
 
   const indexOfLastRow = currentPage * rowsPerPage;
@@ -104,6 +109,7 @@ function History() {
   return (
     <div className="dashboard">
       <h2>Historical Data</h2>
+      {lastUpdated && <p style={{marginBottom: "10px"}}>Last updated: {lastUpdated}</p>}
 
       <div className="timeframe-buttons">
         {["day", "week", "month", "year"].map(tf => (
@@ -143,17 +149,17 @@ function History() {
             ) : (
               currentRows.map((row, index) => (
                 <tr key={index}>
-                  <td>{row.time}</td>
-                  <td>{row.voltage}</td>
-                  <td>{row.current}</td>
-                  <td>{row.power}</td>
-                  <td>{row.apparent_power}</td>
-                  <td>{row.frequency}</td>
-                  <td>{row.reactive_power}</td>
-                  <td>{row.power_factor} {trendIcon(row.trends.pf)}</td>
-                  <td>{row.energy} {trendIcon(row.trends.energy)}</td>
-                  <td>{row.carbon} {trendIcon(row.trends.carbon)}</td>
-                  <td>{row.relay}</td>
+                  <td data-label="Time">{row.time}</td>
+                  <td data-label="Voltage (V)">{row.voltage}</td>
+                  <td data-label="Current (A)">{row.current}</td>
+                  <td data-label="Power (W)">{row.power}</td>
+                  <td data-label="Apparent Power (VA)">{row.apparent_power}</td>
+                  <td data-label="Frequency (Hz)">{row.frequency}</td>
+                  <td data-label="Reactive Power (VAR)">{row.reactive_power}</td>
+                  <td data-label="Power Factor">{row.power_factor} {trendIcon(row.trends.pf)}</td>
+                  <td data-label="Energy (kWh)">{row.energy} {trendIcon(row.trends.energy)}</td>
+                  <td data-label="CO₂ (kg)">{row.carbon} {trendIcon(row.trends.carbon)}</td>
+                  <td data-label="Relay">{row.relay}</td>
                 </tr>
               ))
             )}

@@ -9,105 +9,103 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import "../Dashboard/Dashboard.css";
+import "./Prediction.css";
 
 function Prediction() {
   const [data, setData] = useState([]);
   const [insight, setInsight] = useState("");
   const [recommendations, setRecommendations] = useState([]);
-  const [timeframe, setTimeframe] = useState("day"); // day, week, month, year
+  const [loading, setLoading] = useState(false);
+  const [timeframe, setTimeframe] = useState("hour"); // default
 
-  const generatePrediction = (historical, steps = 5) => {
-    if (historical.length < 2) return [];
-    const energyTrend = (historical[historical.length - 1].energy_actual - historical[0].energy_actual) / (historical.length - 1);
-    const carbonTrend = (historical[historical.length - 1].carbon_actual - historical[0].carbon_actual) / (historical.length - 1);
+  // Linear regression for hourly smoothing
+  const linearRegressionPredict = (data, nextHours = 1) => {
+    if (!data || data.length === 0) return [];
 
-    const lastEnergy = historical[historical.length - 1].energy_actual;
-    const lastCarbon = historical[historical.length - 1].carbon_actual;
+    const n = data.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
 
-    const predicted = [];
-    for (let i = 1; i <= steps; i++) {
-      predicted.push({
-        hour: `T+${i}`,
-        energy_actual: null,
-        carbon_actual: null,
-        energy_predicted: lastEnergy + energyTrend * i,
-        carbon_predicted: lastCarbon + carbonTrend * i,
-      });
+    data.forEach((point, idx) => {
+      const x = idx;
+      const y = point.carbon_predicted;
+      sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x;
+    });
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    const predictions = [];
+    for (let i = 0; i < nextHours; i++) {
+      const x = n + i;
+      predictions.push({ hour: `Hour ${x}`, carbon_predicted: slope * x + intercept });
     }
-    return predicted;
+
+    return predictions;
   };
 
-  const fetchData = async (tf) => {
+  const fetchPrediction = async (tf) => {
     try {
-      let results = 24; // daily
-      if (tf === "week") results = 7;
-      if (tf === "month") results = 30;
-      if (tf === "year") results = 12;
-
-      const res = await fetch(
-        `https://api.thingspeak.com/channels/2966741/feeds.json?api_key=8PCY8HQ6WKC7MYC0&results=${results}`
-      );
+      setLoading(true);
+      const res = await fetch(`https://iot-nn2z.onrender.com/predict?timeframe=${tf}`);
       const json = await res.json();
+      if (!json.data) return;
 
-      const historical = json.feeds.map(feed => ({
-        hour: tf === "day" ? new Date(feed.created_at).getHours() + ":00" : new Date(feed.created_at).toLocaleDateString(),
-        energy_actual: Number(feed.field4),
-        carbon_actual: Number(feed.field4) * 0.1
+      const co2Data = json.data.map((item) => ({
+        hour: item.hour,
+        carbon_predicted: item.carbon_predicted,
       }));
 
-      const predicted = generatePrediction(historical, tf === "day" ? 5 : tf === "week" ? 7 : tf === "month" ? 30 : 12);
-      setData([...historical, ...predicted]);
+      // Only apply linear regression for hourly data
+      const finalData = tf === "hour" ? [...co2Data, ...linearRegressionPredict(co2Data, 3)] : co2Data;
 
-      // Insights & Recommendations
-      const recentEnergyChange = historical[historical.length - 1].energy_actual - historical[0].energy_actual;
-      const recentCarbonChange = historical[historical.length - 1].carbon_actual - historical[0].carbon_actual;
+      setData(finalData);
 
-      let insightText = "Energy and carbon usage is stable.";
-      const recs = [];
+      // Insight based on average CO2 of actual data
+      const avgCO2 = co2Data.reduce((sum, item) => sum + item.carbon_predicted, 0) / co2Data.length;
 
-      if (recentEnergyChange > 0.5) {
-        insightText = "Energy usage is increasing over the last period.";
-        recs.push("Consider reducing high-power loads during peak hours.");
-        recs.push("Check appliances for energy efficiency.");
-      } else if (recentEnergyChange < -0.5) {
-        insightText = "Energy usage is decreasing — good trend!";
-        recs.push("Continue monitoring usage to maintain efficiency.");
+      if (avgCO2 < 50) {
+        setInsight("CO₂ levels are low. Keep up the good energy usage habits!");
+        setRecommendations(["Maintain current energy practices.", "Consider small efficiency improvements."]);
+      } else if (avgCO2 < 150) {
+        setInsight("CO₂ levels are moderate. Monitor energy consumption closely.");
+        setRecommendations([
+          "Reduce peak usage where possible.",
+          "Use energy-efficient appliances during high-demand hours.",
+        ]);
+      } else {
+        setInsight("CO₂ levels are high! Immediate action recommended!");
+        setRecommendations([
+          "Shift high-energy tasks to off-peak hours.",
+          "Check for any unusual energy consumption in your devices.",
+          "Consider renewable energy sources if possible.",
+        ]);
       }
-
-      if (recentCarbonChange > 0.05) {
-        recs.push("Carbon emissions are rising — consider renewable sources.");
-      } else if (recentCarbonChange < -0.05) {
-        recs.push("Carbon emissions are reducing — positive trend!");
-      }
-
-      setInsight(insightText);
-      setRecommendations(recs);
-
     } catch (error) {
-      console.error(error);
+      console.error("Error fetching prediction:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    // Determine refresh interval based on timeframe
-    let intervalTime = 1000; // default 1s for daily
-    if (timeframe === "week") intervalTime = 5000; // 5s
-    if (timeframe === "month") intervalTime = 10000; // 10s
-    if (timeframe === "year") intervalTime = 30000; // 30s
+    fetchPrediction(timeframe);
 
-    fetchData(timeframe); // initial fetch
-    const interval = setInterval(() => fetchData(timeframe), intervalTime);
+    // Only auto-refresh hourly data every 60 minutes
+    let interval;
+    if (timeframe === "hour") {
+      interval = setInterval(() => fetchPrediction("hour"), 3600000);
+    }
 
     return () => clearInterval(interval);
   }, [timeframe]);
 
   return (
     <div className="dashboard">
-      <h2>Energy & Carbon Predictions</h2>
+      <h2>⚡ CO₂ Predictions</h2>
 
+      {/* Timeframe buttons */}
       <div className="timeframe-buttons">
-        {["day", "week", "month", "year"].map(tf => (
+        {["hour", "day", "week", "month", "year"].map((tf) => (
           <button
             key={tf}
             onClick={() => setTimeframe(tf)}
@@ -118,29 +116,36 @@ function Prediction() {
         ))}
       </div>
 
-      <div className="chart-card">
-        <ResponsiveContainer width="100%" height={350}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="hour" />
-            <YAxis yAxisId="left" label={{ value: "Energy (kWh)", angle: -90, position: "insideLeft" }} />
-            <YAxis yAxisId="right" orientation="right" label={{ value: "CO₂ (kg)", angle: -90, position: "insideRight" }} />
-            <Tooltip />
-            <Legend />
-            <Line yAxisId="left" type="monotone" dataKey="energy_actual" stroke="#007bff" dot={false} name="Energy Actual" />
-            <Line yAxisId="right" type="monotone" dataKey="carbon_actual" stroke="#ff7300" dot={false} name="CO₂ Actual" />
-            <Line yAxisId="left" type="monotone" dataKey="energy_predicted" stroke="#82ca9d" dot={false} strokeDasharray="5 5" name="Energy Predicted" />
-            <Line yAxisId="right" type="monotone" dataKey="carbon_predicted" stroke="#ffbb28" dot={false} strokeDasharray="5 5" name="CO₂ Predicted" />
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="card chart-card">
+        {loading ? (
+          <div className="loading">Fetching CO₂ predictions...</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+              <XAxis dataKey="hour" label={{ value: "Time", position: "insideBottom", offset: -5 }} />
+              <YAxis label={{ value: "CO₂ (kg)", angle: -90, position: "insideLeft" }} />
+              <Tooltip contentStyle={{ backgroundColor: "var(--card-bg)", border: "1px solid var(--border-color)" }} />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="carbon_predicted"
+                stroke="#f59e0b"
+                dot={false}
+                strokeWidth={2}
+                name="CO₂ Predicted"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      <div className="insight">
-        <h4>Insight</h4>
+      <div className="card insight">
+        <h4>📊 Insight</h4>
         <p>{insight}</p>
         {recommendations.length > 0 && (
           <>
-            <h4>Recommendations</h4>
+            <h4>💡 Recommendations</h4>
             <ul>
               {recommendations.map((rec, index) => (
                 <li key={index}>{rec}</li>

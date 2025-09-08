@@ -1,38 +1,73 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Navbar from "./components/Navbar/Navbar";
 import Dashboard from "./components/Dashboard/Dashboard";
 import Prediction from "./components/Prediction/Prediction";
 import History from "./components/History/History";
-import "./index.css"; // global + layout styles
+import { ThemeProvider, useTheme } from "./components/ThemeContext";
+import "./index.css";
 
-function App() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+function AppLayout() {
+  const [isCollapsed, setIsCollapsed] = useState(false); // desktop collapse
+  const [isMobileOpen, setIsMobileOpen] = useState(false); // mobile sidebar
+  const { theme } = useTheme();
 
-  const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+  // Close sidebar automatically on resize if needed
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 1024) {
+        setIsMobileOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const toggleSidebar = () => {
+    if (window.innerWidth <= 1024) {
+      setIsMobileOpen((prev) => !prev); // toggle overlay
+    } else {
+      setIsCollapsed((prev) => !prev); // toggle collapse
+    }
+  };
 
   return (
-    <Router>
-      <div className="app-container">
-        {/* Sidebar (fixed) */}
-        <Sidebar isCollapsed={isCollapsed} />
+    <div className="layout" data-theme={theme}>
+      {/* Sidebar */}
+      <Sidebar
+        isCollapsed={isCollapsed}
+        isMobileOpen={isMobileOpen}
+        toggleSidebar={toggleSidebar}
+      />
 
-        {/* Main content (shifts when sidebar collapses) */}
-        <div className={`main-content ${isCollapsed ? "collapsed" : ""}`}>
-          <Navbar toggleSidebar={toggleSidebar} />
+      {/* Main Content */}
+      <div
+        className={`main-content ${isCollapsed ? "collapsed" : ""} ${
+          isMobileOpen ? "mobile-open" : ""
+        }`}
+      >
+        <Navbar toggleSidebar={toggleSidebar} isCollapsed={isCollapsed} />
 
-          <div className="page-wrapper">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/ai-prediction" element={<Prediction />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/settings" element={<h2>Settings</h2>} />
-            </Routes>
-          </div>
+        <div className="content-area">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/ai-prediction" element={<Prediction />} />
+            <Route path="/history" element={<History />} />
+          </Routes>
         </div>
       </div>
-    </Router>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <Router>
+        <AppLayout />
+      </Router>
+    </ThemeProvider>
   );
 }
 

@@ -1,0 +1,87 @@
+/* ===== Prediction Page ===== */
+.dashboard h2 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+
+.timeframe-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.timeframe-buttons button {
+  background: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.timeframe-buttons button.active {
+  background: var(--primary-color);
+  color: var(--btn-text);
+  border-color: var(--primary-color);
+}
+
+.card.chart-card {
+  margin-bottom: 20px;
+  padding: 1rem;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1rem;
+  padding: 2rem 0;
+  color: var(--text-color);
+}
+
+.card.insight {
+  padding: 1rem 1.5rem;
+}
+
+.card.insight h4 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
+.card.insight p {
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.card.insight ul {
+  list-style-type: disc;
+  padding-left: 20px;
+}
+
+.card.insight li {
+  margin-bottom: 5px;
+  font-size: 0.95rem;
+}
+
+/* ===== Chart Container ===== */
+.chart-card {
+  background: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .timeframe-buttons {
+    flex-wrap: wrap;
+  }
+
+  .timeframe-buttons button {
+    flex: 1 1 45%;
+  }
+
+  .card.chart-card {
+    height: 300px;
+  }
+}
