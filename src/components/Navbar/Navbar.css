@@ -1,93 +1,65 @@
-/* ===== Navbar Container ===== */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   background: var(--card-bg);
   color: var(--text-color);
   box-shadow: var(--card-shadow);
-  border-radius: 10px;
-  margin-bottom: 20px;
-  transition: background 0.3s ease, color 0.3s ease;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
 }
 
-/* ===== Navbar Left ===== */
 .navbar-left {
   display: flex;
   align-items: center;
+  gap: 1rem;
 }
 
 .navbar-title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin: 0;
 }
 
-/* ===== Navbar Right ===== */
+.sidebar-toggle {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+}
+
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
-/* ===== Buttons ===== */
-.navbar button {
+.theme-toggle {
   background: var(--btn-bg);
   color: var(--btn-text);
   border: none;
-  padding: 0.5rem 0.8rem;
   border-radius: 6px;
+  padding: 0.5rem;
   cursor: pointer;
-  font-size: 1rem;
+  transition: background 0.3s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
 }
 
-.navbar button:hover {
+.theme-toggle:hover {
   opacity: 0.85;
 }
 
-/* Sidebar toggle specific */
-.sidebar-toggle {
-  background: transparent;
-  color: var(--text-color);
-  font-size: 1.2rem;
-}
-
-/* Theme toggle specific */
-.theme-toggle {
-  background: var(--primary-color);
-  color: var(--btn-text);
-  font-size: 1.1rem;
-}
-
-/* ===== Responsive ===== */
+/* Responsive */
 @media (max-width: 768px) {
-  .navbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 0.6rem 1rem;
-  }
-
-  .navbar-right {
-    gap: 8px;
-    width: 100%;
-    justify-content: space-between;
-  }
-
   .navbar-title {
-    font-size: 1.3rem;
+    font-size: 1rem;
   }
 
-  .sidebar-toggle, .theme-toggle {
-    font-size: 1rem;
-    padding: 0.4rem 0.6rem;
+  .navbar-left {
+    gap: 0.5rem;
   }
 }

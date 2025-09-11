@@ -1,126 +1,123 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import "./History.css";
 
 function History() {
-  const [data, setData] = useState([]);
-  const [timeframe, setTimeframe] = useState("day"); // day, week, month, year
+  const [data, setData] = useState(() => {
+    // ✅ Load saved history from localStorage on page load
+    const saved = localStorage.getItem("historyData");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [lastUpdated, setLastUpdated] = useState(null);
   const rowsPerPage = 10;
-  const dataRef = useRef([]); // keep latest data in ref for real-time updates
+  const emissionFactor = 0.5; // kg CO₂ per J of energy
 
-  const fetchData = async (tf) => {
-    try {
-      let results = 24;
-      if (tf === "week") results = 7;
-      if (tf === "month") results = 30;
-      if (tf === "year") results = 12;
+  // ✅ Fetch data from ThingSpeak every 1 second
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetch(
+          "https://api.thingspeak.com/channels/2966741/feeds.json?api_key=8PCY8HQ6WKC7MYC0&results=1"
+        );
+        const json = await res.json();
 
-      const res = await fetch(
-        `https://api.thingspeak.com/channels/2966741/feeds.json?api_key=8PCY8HQ6WKC7MYC0&results=${results}`
-      );
-      const json = await res.json();
+        if (json.feeds && json.feeds.length > 0) {
+          const feed = json.feeds[0];
+          const energy = parseFloat(feed.field4) || 0;
 
-      // Map data with trends
-      const processedData = json.feeds.map((feed, index, arr) => {
-        const voltage = Number(feed.field1);
-        const current = Number(feed.field2);
-        const power = Number(feed.field3);
-        const energy = Number(feed.field4);
-        const carbon = energy * 0.1;
-        const frequency = Number(feed.field6);
-        const reactive_power = Number(feed.field7);
-        const power_factor = Number(feed.field8);
+          const newReading = {
+            time: feed.created_at,
+            voltage: parseFloat(feed.field1) || 0, // Volts (V)
+            current: parseFloat(feed.field2) || 0, // Amps (A)
+            power: parseFloat(feed.field3) || 0, // Watts (W)
+            energy: parseFloat(feed.field4) || 0, // Joules (J)
+            power_factor: parseFloat(feed.field5) || 0, // unitless
+            frequency: parseFloat(feed.field6) || 0, // Hz
+            apparent_power: parseFloat(feed.field7) || 0, // VA
+            reactive_power: parseFloat(feed.field8) || 0, // VAR
+            co2: energy * emissionFactor, // kg CO₂
+          };
 
-        const prev = arr[index - 1];
-        const energyTrend = prev ? (energy > Number(prev.field4) ? "up" : energy < Number(prev.field4) ? "down" : "stable") : "stable";
-        const carbonTrend = prev ? (carbon > Number(prev.field4) * 0.1 ? "up" : carbon < Number(prev.field4) * 0.1 ? "down" : "stable") : "stable";
-        const pfTrend = prev ? (power_factor > Number(prev.field8) ? "up" : power_factor < Number(prev.field8) ? "down" : "stable") : "stable";
+          setData((prev) => {
+            if (prev.length > 0 && prev[0].time === newReading.time) {
+              return prev; // avoid duplicate
+            }
+            const updated = [newReading, ...prev]; // ✅ prepend (new → old)
+            localStorage.setItem("historyData", JSON.stringify(updated));
+            return updated;
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching ThingSpeak data:", err);
+      }
+    };
 
-        return {
-          time: tf === "day" ? new Date(feed.created_at).getHours() + ":00" : new Date(feed.created_at).toLocaleDateString(),
-          voltage,
-          current,
-          power,
-          apparent_power: voltage * current,
-          frequency,
-          reactive_power,
-          power_factor,
-          energy,
-          carbon,
-          relay: Number(feed.field5) === 1 ? "ON" : "OFF",
-          trends: { energy: energyTrend, carbon: carbonTrend, pf: pfTrend },
-        };
-      });
+    const interval = setInterval(fetchData, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-      dataRef.current = processedData; // store in ref for real-time access
-      setData(processedData);
-      setCurrentPage(1);
-      setLastUpdated(new Date().toLocaleTimeString());
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
+  // ✅ Clear history completely
+  const handleClear = () => {
+    setData([]);
+    setCurrentPage(1);
+    localStorage.removeItem("historyData");
   };
 
-  useEffect(() => {
-    fetchData(timeframe); // initial fetch
-
-    // Real-time polling every 1 second
-    const interval = setInterval(() => fetchData(timeframe), 1000);
-
-    return () => clearInterval(interval); // cleanup
-  }, [timeframe]);
-
-  const indexOfLastRow = currentPage * rowsPerPage;
-  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-  const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
-  const totalPages = Math.ceil(data.length / rowsPerPage);
-
+  // ✅ Download CSV (new → old order)
   const handleCSVDownload = () => {
     const header = [
-      "Time", "Voltage (V)", "Current (A)", "Power (W)", "Apparent Power (VA)",
-      "Frequency (Hz)", "Reactive Power (VAR)", "Power Factor", "Energy (kWh)", "CO₂ (kg)", "Relay"
+      "Time",
+      "Voltage (V)",
+      "Current (A)",
+      "Power (W)",
+      "Energy (J)",
+      "Power Factor",
+      "Frequency (Hz)",
+      "Apparent Power (VA)",
+      "Reactive Power (VAR)",
+      "CO₂ (kg)",
     ];
+
     const csvRows = [
       header.join(","),
-      ...data.map(row =>
+      ...data.map((row) =>
         [
-          row.time, row.voltage, row.current, row.power, row.apparent_power,
-          row.frequency, row.reactive_power, row.power_factor, row.energy, row.carbon, row.relay
+          row.time,
+          row.voltage,
+          row.current,
+          row.power,
+          row.energy,
+          row.power_factor,
+          row.frequency,
+          row.apparent_power,
+          row.reactive_power,
+          row.co2.toFixed(3),
         ].join(",")
-      )
+      ),
     ];
+
     const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `history_${timeframe}.csv`);
+    link.setAttribute("download", "history.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const trendIcon = (trend) => {
-    if (trend === "up") return "🔺";
-    if (trend === "down") return "🔻";
-    return "➡️";
-  };
+  // ✅ Pagination logic
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.ceil(data.length / rowsPerPage);
 
   return (
     <div className="dashboard">
-      <h2>Historical Data</h2>
-      {lastUpdated && <p style={{marginBottom: "10px"}}>Last updated: {lastUpdated}</p>}
+      <h2>Historical Data (ThingSpeak)</h2>
 
       <div className="timeframe-buttons">
-        {["day", "week", "month", "year"].map(tf => (
-          <button
-            key={tf}
-            onClick={() => setTimeframe(tf)}
-            className={timeframe === tf ? "active" : ""}
-          >
-            {tf.charAt(0).toUpperCase() + tf.slice(1)}
-          </button>
-        ))}
+        <button onClick={handleClear}>🗑 Clear History</button>
         <button onClick={handleCSVDownload}>Download CSV</button>
       </div>
 
@@ -132,34 +129,34 @@ function History() {
               <th>Voltage (V)</th>
               <th>Current (A)</th>
               <th>Power (W)</th>
-              <th>Apparent Power (VA)</th>
-              <th>Frequency (Hz)</th>
-              <th>Reactive Power (VAR)</th>
+              <th>Energy (J)</th>
               <th>Power Factor</th>
-              <th>Energy (kWh)</th>
+              <th>Frequency (Hz)</th>
+              <th>Apparent Power (VA)</th>
+              <th>Reactive Power (VAR)</th>
               <th>CO₂ (kg)</th>
-              <th>Relay</th>
             </tr>
           </thead>
           <tbody>
             {currentRows.length === 0 ? (
               <tr>
-                <td colSpan="11" style={{ textAlign: "center" }}>No data available</td>
+                <td colSpan="10" style={{ textAlign: "center" }}>
+                  No data available
+                </td>
               </tr>
             ) : (
-              currentRows.map((row, index) => (
-                <tr key={index}>
-                  <td data-label="Time">{row.time}</td>
-                  <td data-label="Voltage (V)">{row.voltage}</td>
-                  <td data-label="Current (A)">{row.current}</td>
-                  <td data-label="Power (W)">{row.power}</td>
-                  <td data-label="Apparent Power (VA)">{row.apparent_power}</td>
-                  <td data-label="Frequency (Hz)">{row.frequency}</td>
-                  <td data-label="Reactive Power (VAR)">{row.reactive_power}</td>
-                  <td data-label="Power Factor">{row.power_factor} {trendIcon(row.trends.pf)}</td>
-                  <td data-label="Energy (kWh)">{row.energy} {trendIcon(row.trends.energy)}</td>
-                  <td data-label="CO₂ (kg)">{row.carbon} {trendIcon(row.trends.carbon)}</td>
-                  <td data-label="Relay">{row.relay}</td>
+              currentRows.map((row, i) => (
+                <tr key={i}>
+                  <td>{new Date(row.time).toLocaleString()}</td>
+                  <td>{row.voltage}</td>
+                  <td>{row.current}</td>
+                  <td>{row.power}</td>
+                  <td>{row.energy}</td>
+                  <td>{row.power_factor}</td>
+                  <td>{row.frequency}</td>
+                  <td>{row.apparent_power}</td>
+                  <td>{row.reactive_power}</td>
+                  <td>{row.co2.toFixed(3)}</td>
                 </tr>
               ))
             )}
@@ -169,9 +166,21 @@ function History() {
 
       {totalPages > 1 && (
         <div className="pagination">
-          <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Prev</button>
-          <span>{currentPage} / {totalPages}</span>
-          <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Next</button>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </button>
+          <span>
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
         </div>
       )}
     </div>
