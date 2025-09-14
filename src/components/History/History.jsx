@@ -3,7 +3,6 @@ import "./History.css";
 
 function History() {
   const [data, setData] = useState(() => {
-    // ✅ Load saved history from localStorage on page load
     const saved = localStorage.getItem("historyData");
     return saved ? JSON.parse(saved) : [];
   });
@@ -12,7 +11,7 @@ function History() {
   const rowsPerPage = 10;
   const emissionFactor = 0.5; // kg CO₂ per J of energy
 
-  // ✅ Fetch data from ThingSpeak every 1 second
+  // ✅ Fetch data from ThingSpeak every 1 minute
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -27,22 +26,22 @@ function History() {
 
           const newReading = {
             time: feed.created_at,
-            voltage: parseFloat(feed.field1) || 0, // Volts (V)
-            current: parseFloat(feed.field2) || 0, // Amps (A)
-            power: parseFloat(feed.field3) || 0, // Watts (W)
-            energy: parseFloat(feed.field4) || 0, // Joules (J)
-            power_factor: parseFloat(feed.field5) || 0, // unitless
-            frequency: parseFloat(feed.field6) || 0, // Hz
-            apparent_power: parseFloat(feed.field7) || 0, // VA
-            reactive_power: parseFloat(feed.field8) || 0, // VAR
-            co2: energy * emissionFactor, // kg CO₂
+            voltage: parseFloat(feed.field1) || 0,
+            current: parseFloat(feed.field2) || 0,
+            power: parseFloat(feed.field3) || 0,
+            energy: parseFloat(feed.field4) || 0,
+            power_factor: parseFloat(feed.field6) || 0,
+            frequency: parseFloat(feed.field5) || 0,
+            apparent_power: parseFloat(feed.field7) || 0,
+            reactive_power: parseFloat(feed.field8) || 0,
+            co2: energy * emissionFactor,
           };
 
           setData((prev) => {
             if (prev.length > 0 && prev[0].time === newReading.time) {
               return prev; // avoid duplicate
             }
-            const updated = [newReading, ...prev]; // ✅ prepend (new → old)
+            const updated = [newReading, ...prev];
             localStorage.setItem("historyData", JSON.stringify(updated));
             return updated;
           });
@@ -52,25 +51,24 @@ function History() {
       }
     };
 
-    const interval = setInterval(fetchData, 1000);
+    fetchData(); // initial fetch
+    const interval = setInterval(fetchData, 60000); // ✅ 1 minute interval
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Clear history completely
   const handleClear = () => {
     setData([]);
     setCurrentPage(1);
     localStorage.removeItem("historyData");
   };
 
-  // ✅ Download CSV (new → old order)
   const handleCSVDownload = () => {
     const header = [
       "Time",
       "Voltage (V)",
       "Current (A)",
       "Power (W)",
-      "Energy (J)",
+      "Energy (kwh)",
       "Power Factor",
       "Frequency (Hz)",
       "Apparent Power (VA)",
@@ -106,7 +104,6 @@ function History() {
     document.body.removeChild(link);
   };
 
-  // ✅ Pagination logic
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
   const currentRows = data.slice(indexOfFirstRow, indexOfLastRow);
@@ -129,7 +126,7 @@ function History() {
               <th>Voltage (V)</th>
               <th>Current (A)</th>
               <th>Power (W)</th>
-              <th>Energy (J)</th>
+              <th>Energy (kwh)</th>
               <th>Power Factor</th>
               <th>Frequency (Hz)</th>
               <th>Apparent Power (VA)</th>
