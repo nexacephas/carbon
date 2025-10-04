@@ -15,21 +15,29 @@ const ROWS_PER_PAGE = 6;
 const EMISSION_FACTOR = 0.5; // kg CO₂ per kWh
 const MAX_READINGS = 60; // keep latest 60 readings
 const STORAGE_KEY = "predictionData"; // localStorage key
+const PAGE_KEY = "predictionPage"; // pagination persistence
 
 function Prediction() {
   const [actualData, setActualData] = useState(() => {
-    // ✅ Load from localStorage on first render
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
   });
 
   const [tableData, setTableData] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const savedPage = localStorage.getItem(PAGE_KEY);
+    return savedPage ? Number(savedPage) : 1;
+  });
 
   // Save to localStorage whenever actualData updates
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(actualData));
   }, [actualData]);
+
+  // Save page to localStorage
+  useEffect(() => {
+    localStorage.setItem(PAGE_KEY, currentPage);
+  }, [currentPage]);
 
   // Fetch actual data from ThingSpeak
   const fetchActualData = async (currentPredicted) => {
@@ -41,11 +49,12 @@ function Prediction() {
       if (json.feeds && json.feeds.length > 0) {
         const feed = json.feeds[0];
         const energy = parseFloat(feed.field4) || 0;
+        const co2 = energy * EMISSION_FACTOR;
 
         const newReading = {
           time: new Date(feed.created_at),
           energy,
-          co2: energy * EMISSION_FACTOR,
+          co2,
           predictedEnergy: currentPredicted ? currentPredicted.energy : null,
           predictedCO2: currentPredicted ? currentPredicted.co2 : null,
         };
@@ -83,72 +92,41 @@ function Prediction() {
     }
   };
 
-  // Build comparative table
-  const buildTableData = () => {
-    if (actualData.length === 0) return;
+  // Build table rows with CO₂-based scoring
+ const buildTableData = () => {
+  const rows = actualData.map((act) => {
+    const rawScore = act.co2 || 0;
+    const score = parseFloat(rawScore.toFixed(1)); // round to one decimal place
 
-    const table = actualData.map((act) => {
-      const absEnergyError =
-        act.predictedEnergy !== null
+    const recommendation =
+      score < 1
+        ? "Very low CO₂ — excellent condition."
+        : score < 2
+        ? "Low CO₂ — safe operation."
+        : score < 4
+        ? "Moderate CO₂ — acceptable but monitor closely."
+        : score <= 5
+        ? "High CO₂ — consider reducing energy consumption or improving efficiency."
+        : "Critical CO₂ level — urgent action required!";
+
+    return {
+      ...act,
+      absoluteEnergyError:
+        act.energy && act.predictedEnergy
           ? Math.abs(act.energy - act.predictedEnergy)
-          : 0;
-      const absCO2Error =
-        act.predictedCO2 !== null ? Math.abs(act.co2 - act.predictedCO2) : 0;
+          : null,
+      absoluteCO2Error:
+        act.co2 && act.predictedCO2
+          ? Math.abs(act.co2 - act.predictedCO2)
+          : null,
+      score,
+      recommendation,
+    };
+  });
 
-      // Energy color
-      let energyColorActual = "#064e3b";
-      if (act.energy >= 2 && act.energy < 4) energyColorActual = "#92400e";
-      else if (act.energy >= 4) energyColorActual = "#991b1b";
+  setTableData(rows);
+};
 
-      let energyColorPredicted = "#064e3b";
-      if (act.predictedEnergy >= 2 && act.predictedEnergy < 4)
-        energyColorPredicted = "#92400e";
-      else if (act.predictedEnergy >= 4) energyColorPredicted = "#991b1b";
-
-      // CO₂ color
-      let co2ColorActual = "#065f46";
-      if (act.co2 >= 2 && act.co2 < 4) co2ColorActual = "#b45309";
-      else if (act.co2 >= 4) co2ColorActual = "#7f1d1d";
-
-      let co2ColorPredicted = "#065f46";
-      if (act.predictedCO2 >= 2 && act.predictedCO2 < 4)
-        co2ColorPredicted = "#b45309";
-      else if (act.predictedCO2 >= 4) co2ColorPredicted = "#7f1d1d";
-
-      // 🔑 Score & Recommendation based on CO₂
-      let score = 1;
-      let recommendation = "Energy usage is normal.";
-
-      if (act.co2 < 1) {
-        score = 1;
-        recommendation = "Very low CO₂ — excellent condition.";
-      } else if (act.co2 >= 1 && act.co2 < 2) {
-        score = 3;
-        recommendation = "moderate CO₂ — system operating normally.";
-      } else if (act.co2 >= 2 && act.co2 < 3) {
-        score = 5;
-        recommendation = "Moderate CO₂ — monitor usage closely.";
-      } else if (act.co2 >= 4) {
-        score = 10;
-        recommendation =
-          "High CO₂ — consider reducing load or checking equipment.";
-      }
-
-      return {
-        ...act,
-        absoluteEnergyError: absEnergyError,
-        absoluteCO2Error: absCO2Error,
-        score,
-        recommendation,
-        energyColorActual,
-        energyColorPredicted,
-        co2ColorActual,
-        co2ColorPredicted,
-      };
-    });
-
-    setTableData(table);
-  };
 
   // Real-time updates every 2s
   useEffect(() => {
@@ -170,9 +148,9 @@ function Prediction() {
   const totalPages = Math.ceil(tableData.length / ROWS_PER_PAGE);
 
   const getScoreColor = (score) => {
-    if (score <= 3) return "#16a34a";
-    if (score <= 5) return "#facc15";
-    return "#ef4444";
+    if (score <= 3) return "#16a34a"; // green
+    if (score <= 5) return "#facc15"; // yellow
+    return "#ef4444"; // red
   };
 
   return (
@@ -208,6 +186,7 @@ function Prediction() {
               dataKey="energy"
               stroke="#1d4ed8"
               name="Actual Energy (kWh)"
+              dot={false}
             />
             <Line
               yAxisId="left"
@@ -215,6 +194,7 @@ function Prediction() {
               dataKey="predictedEnergy"
               stroke="#059669"
               name="Predicted Energy (kWh)"
+              dot={false}
             />
             <Line
               yAxisId="right"
@@ -222,6 +202,7 @@ function Prediction() {
               dataKey="co2"
               stroke="#d97706"
               name="Actual CO₂ (kg)"
+              dot={false}
             />
             <Line
               yAxisId="right"
@@ -229,6 +210,7 @@ function Prediction() {
               dataKey="predictedCO2"
               stroke="#a21caf"
               name="Predicted CO₂ (kg)"
+              dot={false}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -265,20 +247,13 @@ function Prediction() {
                     {row.time ? new Date(row.time).toLocaleTimeString() : "N/A"}
                   </td>
 
-                  <td
-                    style={{ backgroundColor: row.energyColorActual, color: "#fff" }}
-                  >
+                  <td>
                     {typeof row.energy === "number"
                       ? row.energy.toFixed(3)
                       : "N/A"}
                   </td>
 
-                  <td
-                    style={{
-                      backgroundColor: row.energyColorPredicted,
-                      color: "#fff",
-                    }}
-                  >
+                  <td>
                     {typeof row.predictedEnergy === "number"
                       ? row.predictedEnergy.toFixed(3)
                       : "N/A"}
@@ -290,18 +265,11 @@ function Prediction() {
                       : "N/A"}
                   </td>
 
-                  <td
-                    style={{ backgroundColor: row.co2ColorActual, color: "#fff" }}
-                  >
+                  <td>
                     {typeof row.co2 === "number" ? row.co2.toFixed(3) : "N/A"}
                   </td>
 
-                  <td
-                    style={{
-                      backgroundColor: row.co2ColorPredicted,
-                      color: "#fff",
-                    }}
-                  >
+                  <td>
                     {typeof row.predictedCO2 === "number"
                       ? row.predictedCO2.toFixed(3)
                       : "N/A"}
@@ -343,7 +311,9 @@ function Prediction() {
               {currentPage} / {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(p + 1, totalPages))
+              }
               disabled={currentPage === totalPages}
             >
               Next
